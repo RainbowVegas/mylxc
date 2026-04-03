@@ -33,7 +33,6 @@ int cmd_run(const char *img, const char *container_name, port_mapping *ports){
 	// Parse image
 	parse_image(img, &info);
 
-	// Init CMD
 	char cmd[512];
 	// Build LXC create command
 	snprintf(cmd, sizeof(cmd), "lxc-create -n %s -t download -- -d %s -r %s -a amd64", 
@@ -44,15 +43,8 @@ int cmd_run(const char *img, const char *container_name, port_mapping *ports){
 
 	// If container was made successfully, start container
 	if(ret == 0){
-		printf("Starting conatiner %s...\n", container_name);
-		
-		// Build LXC start command
-		snprintf(cmd, sizeof(cmd), "lxc-start -n %s", container_name);
-		
-		// Start container
-		system(cmd);
-
-		printf("Container %s is running\n", container_name);
+		// Start container -- also new
+		ret = cmd_start(container_name);
 
 		// Delay for a second
 		sleep(5);
@@ -124,12 +116,12 @@ int cmd_stop(const char *container_name){
  * Return: 0 on success, non-zero on failure
  */
 int cmd_rm(const char *container_name){
-        char cmd[512];
-	
+    char cmd[512];
+
 	printf("Removing container %s...\n", container_name);
 
 	// Build LXC command destroy
-        snprintf(cmd, sizeof(cmd), "lxc-destroy -n %s", container_name);
+    snprintf(cmd, sizeof(cmd), "lxc-destroy -n %s", container_name);
 	
 	// Remove container
 	int ret = system(cmd);
@@ -143,6 +135,30 @@ int cmd_rm(const char *container_name){
 		fprintf(stderr, "Error: Failed to remove container\n");
 	}
 
-        return ret;
+    return ret;
 }
 
+// New addition
+int cmd_start(const char *container_name){
+	char cmd[512];
+
+	printf("Starting conatiner %s...\n", container_name);
+	
+	// Build LXC start command
+	snprintf(cmd, sizeof(cmd), "lxc-start -n %s", container_name);
+	
+	// Start container
+	int ret = system(cmd);
+
+	// If container started
+	if(ret == 0){
+		printf("Container %s is running\n", container_name);
+	}
+	// If container wasn't started
+	else{
+		fprintf(stderr, "Error: Failed to start container\n");
+	}
+
+    return ret;
+
+}
