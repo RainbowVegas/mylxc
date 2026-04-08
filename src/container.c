@@ -18,16 +18,53 @@
 #include "json.h"
 
 /**
+ * apply_resource_limits - Apply resource limits to a container
+ * @container_name: Name of the container
+ * @memory_limit: Memory limit (e.g. "512M", "1G")
+ * @cpu_limit: CPU limit in microseconds (e.g. 50000 for 50ms of CPU time)
+ *
+ * This function applies memory and CPU limits to the specified container using lxc-cgroup.
+ *
+ * Return: 0 on success, non-zero on failure
+ */
+int apply_resource_limits(const char *container_name, const char *memory_limit, int cpu_limit){
+	char cmd[512];
+
+	// Apply memory limit if specified
+	if(strlen(memory_limit) > 0){
+		snprintf(cmd, sizeof(cmd), "lxc-cgroup -n %s memory.limit_in_bytes %s", container_name, memory_limit);
+		if(system(cmd) != 0){
+			fprintf(stderr, "Error: Failed to apply memory limit\n");
+			return 1;
+		}
+	}
+
+	// Apply CPU limit if specified
+	if(cpu_limit > 0){
+		snprintf(cmd, sizeof(cmd), "lxc-cgroup -n %s cpu.cfs_quota_us %d", container_name, cpu_limit);
+		if(system(cmd) != 0){
+			fprintf(stderr, "Error: Failed to apply CPU limit\n");
+			return 1;
+		}
+	}
+
+	return 0; 
+}
+
+/**
  * cmd_run - Create and start an LXC container
  * @img: Image name (format: "distro:version", e.g. "ubuntu:20.04")
  * @container_name: Name for the new container
  * @ports: Port mapping information (currently only supports one port mapping)
+ * @memory_limit: Memory limit for the container
+ * @cpu_limit: CPU limit for the container
  * 
  * Creates a new LXC container based on the specified image, assigns it a name, 
- * and starts it. Optionally sets up port mapping.
+ * and starts it. Optionally sets up port mapping and resource limits.
  * 
  */
-int cmd_run(const char *img, const char *container_name, port_mapping *ports){
+int cmd_run(const char *img, const char *container_name, port_mapping *ports,
+			const char *memory_limit, int cpu_limit){
 	// Init image info
 	image_info info;
 
@@ -55,6 +92,10 @@ int cmd_run(const char *img, const char *container_name, port_mapping *ports){
 		if(ports->has_port){
 			setup_port_mapping(container_name, ports->host_port, ports->container_port);
 		}
+
+		// Apply resource limits
+		ret = apply_resource_limits(container_name, memory_limit, cpu_limit);
+		if(ret != 0) return ret;
 	}
 	// If container wasn't created, print error 
 	else{

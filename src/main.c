@@ -32,6 +32,8 @@ int run_handler(int argc, char **argv){
     // Variables for optional flags
     char container_name[128] = "";
     port_mapping ports = {0,0,0};
+    char memory_limit[64] = "";
+    int cpu_limit = 0;
     
     // For every arg after image
     for(int i = 3; i < argc; i++){
@@ -70,6 +72,34 @@ int run_handler(int argc, char **argv){
                 return 1;
             }
         }
+        // Check for --cpu flag
+        else if(strcmp(argv[i], "--cpu") == 0){
+            // If CPU limit was provided
+            if(i + 1 < argc){
+                // Copy CPU limit given
+                cpu_limit = atoi(argv[i + 1]);
+                i++;
+            }
+            // If CPU limit wasn't provided
+            else{
+                fprintf(stderr, "Error: CPU limit wasn't provided\n");
+                return 1;
+            }
+        }
+        // Check for --memory flag
+        else if(strcmp(argv[i], "--memory") == 0){
+            // If memory limit was provided
+            if(i + 1 < argc){
+                // Copy memory limit given
+                strcpy(memory_limit, argv[i + 1]);
+                i++;
+            }
+            // If memory limit wasn't provided
+            else{
+                fprintf(stderr, "Error: memory limit wasn't provided\n");
+                return 1;
+            }
+        }
         // If unknown flag
         else{
             fprintf(stderr, "Error: unknown flags given %s\n", argv[i]);
@@ -85,7 +115,7 @@ int run_handler(int argc, char **argv){
     }
     
     // Create and start container
-    return cmd_run(argv[2], container_name, &ports);
+    return cmd_run(argv[2], container_name, &ports, memory_limit, cpu_limit);
 }
 
 /**
