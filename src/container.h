@@ -10,7 +10,8 @@ typedef struct{
 } port_mapping;
 
 // Container Functions
-int cmd_run(const char *img, const char *container_name, port_mapping *ports);
+int cmd_run(const char *img, const char *container_name, port_mapping *ports,
+            const char *memory_limit, int cpu_limit);
 int cmd_ps();
 int cmd_stop(const char *container_name);
 int cmd_rm(const char *container_name);

@@ -6,15 +6,28 @@
 void print_usage() {
     printf("MyLXC - Simplified LXC Interface\n\n");
     printf("Usage:\n");
-    printf("  mylxc run <image>           Create and start container\n");
-    printf("  mylxc ps                    List containers\n");
-    printf("  mylxc stop <n>              Stop container\n");
-    printf("  mylxc rm <n>                Remove container\n");
+    printf("  mylxc run <image> [options]  Create and start container\n");
+    printf("  mylxc ps                     List containers\n");
+    printf("  mylxc start <name> [...]     Start one or more stopped containers\n");
+    printf("  mylxc stop <name> [...]      Stop one or more running containers\n");
+    printf("  mylxc rm <name> [...]        Remove one or more containers\n");
+    printf("  mylxc limits <name> [...]    Apply resource limits to containers\n");
+    printf("\n");
+    printf("Run Options:\n");
+    printf("  --name <name>                Assign a name to the container\n");
+    printf("  -p <host>:<container>        Map a host port to a container port\n");
+    printf("  --memory <limit>              Set memory limit for the container\n");
+    printf("  --cpu <limit>                 Set CPU limit for the container\n");
     printf("\n");
     printf("Examples:\n");
     printf("  mylxc run ubuntu:22.04\n");
+    printf("  mylxc run ubuntu:22.04 --name mycontainer\n");
+    printf("  mylxc run ubuntu:22.04 --name webserver -p 8080:80\n");
     printf("  mylxc ps\n");
-    printf("  mylxc stop mycontainer\n");
+    printf("  mylxc start container1 container2 container3\n");
+    printf("  mylxc stop container1 container2 container3\n");
+    printf("  mylxc rm container1 container2 container3\n");
+	printf("  mylxc limits container1 --memory 512M --cpu 2\n");
 }
 
 /* 

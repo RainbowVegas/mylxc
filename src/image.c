@@ -20,14 +20,25 @@ const char* get_debian_release(const char* version){
         return version;
 } 
 
-
+/**
+ * parse_image - Parse an image string into its components
+ * @img: Image string in the format "distro:version" (e.g., "ubuntu:20.04")
+ * @info: Pointer to an image_info struct to fill with parsed data
+ * 
+ * Parses the image string to extract the distribution and version, and fills
+ * the provided image_info struct. The version is also converted to a release
+ * name if it's a known Ubuntu or Debian version.
+ * 
+ * Return: 0 on success, non-zero on failure
+ */
 int parse_image(const char *img, image_info *info){	
+	// Buffers to hold parsed distro and version
 	char version[64];
 	
 	// Parse image
 	if(parse_col_seperator(img, info->distro, sizeof(info->distro), 
-			            version, sizeof(version)) != 0){
-		fprintf(stderr, "Error: couldn't find colon or buffer sizes too small\n");
+		           	       version, sizeof(version)) != 0){
+		fprintf(stderr, "Error: couldn't find colon or buffer size is too small\n");
 		return -1;
 	}
 
@@ -40,13 +51,14 @@ int parse_image(const char *img, image_info *info){
 	}
 	// If debian
 	else if(strcmp(info->distro, "debian") == 0){
-                release = get_debian_release(version);
-        }
+    	release = get_debian_release(version);
+    }
 	// If alpine
 	else{
 		release = version;
 	}
 
+	// Copy release to info struct
 	strcpy(info->release, release);
 	
 	return 0;

@@ -1,4 +1,4 @@
-/*
+/**
  * container.c - Container Management Operations
  * 
  * This file implements the core container lifecycle operations:
@@ -15,16 +15,17 @@
 #include "container.h"
 #include "image.h"
 #include "network.h"
+#include "json.h"
 
 /**
  * cmd_run - Create and start an LXC container
- * @img: Image name (e.g., "ubuntu:22.04") - currently unused, hardcoded to Ubuntu
+ * @img: Image name (format: "distro:version", e.g. "ubuntu:20.04")
  * @container_name: Name for the new container
+ * @ports: Port mapping information (currently only supports one port mapping)
  * 
- * Creates a new LXC container using the download template and automatically
- * starts it. Currently only supports Ubuntu Jammy (22.04).
+ * Creates a new LXC container based on the specified image, assigns it a name, 
+ * and starts it. Optionally sets up port mapping.
  * 
- * Return: 0 on success, non-zero on failure
  */
 int cmd_run(const char *img, const char *container_name, port_mapping *ports){
 	// Init image info
@@ -45,8 +46,9 @@ int cmd_run(const char *img, const char *container_name, port_mapping *ports){
 	if(ret == 0){
 		// Start container -- also new
 		ret = cmd_start(container_name);
+		if(ret != 0) return ret;
 
-		// Delay for a second
+		// Delay for 5 seconds to allow container to boot before setting up port mapping
 		sleep(5);
 
 		// Set up port mapping
@@ -107,16 +109,15 @@ int cmd_stop(const char *container_name){
 }
 
 /**
- * cmd_stop - Stop a running container
- * @container_name: Name of the container to stop
+ * cmd_rm - Remove a container
+ * @container_name: Name of the container to remove
  * 
- * Gracefully stops a running LXC container. The container is not destroyed
- * and can be restarted later.
+ * Gracefully removes an LXC container. The container is destroyed and cannot be restarted.
  * 
  * Return: 0 on success, non-zero on failure
  */
 int cmd_rm(const char *container_name){
-    char cmd[512];
+	char cmd[512];
 
 	printf("Removing container %s...\n", container_name);
 
@@ -129,6 +130,16 @@ int cmd_rm(const char *container_name){
 	// If container was removed
 	if(ret == 0){
 		printf("Container was removed\n");
+		// If container exists in JSON file
+		if(container_exists(container_name)){
+			// Clean up iptable rules
+			ret = iptable_cleanup(container_name);
+			if(ret != 0) return ret;
+			
+			//Remove container info from JSON
+			ret = remove_container_info(container_name);
+			if(ret != 0) return ret;
+		}
 	}
 	// If container wasn't removed
 	else{
@@ -138,11 +149,18 @@ int cmd_rm(const char *container_name){
     return ret;
 }
 
-// New addition
+/**
+ * cmd_start - Start a container
+ * @container_name: Name of the container to start
+ * 
+ * Gracefully starts an LXC container. The container must already exist.
+ * 
+ * Return: 0 on success, non-zero on failure
+ */
 int cmd_start(const char *container_name){
 	char cmd[512];
 
-	printf("Starting conatiner %s...\n", container_name);
+	printf("Starting container %s...\n", container_name);
 	
 	// Build LXC start command
 	snprintf(cmd, sizeof(cmd), "lxc-start -n %s", container_name);
@@ -159,6 +177,13 @@ int cmd_start(const char *container_name){
 		fprintf(stderr, "Error: Failed to start container\n");
 	}
 
-    return ret;
+	// If container exists in JSON (for stop and start)
+	if(container_exists(container_name)){
+		// Wait 5 seconds for container to boot before updating JSON
+		sleep(5);
+		// Update container info in JSON with new IP address
+		update_container_ip(container_name);
+	}
 
+    return ret;
 }

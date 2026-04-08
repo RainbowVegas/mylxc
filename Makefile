@@ -1,12 +1,13 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c11 -g
+CFLAGS = -Wall -Wextra -std=c11 -g -IcJSON
 TARGET = mylxc
 SRC_DIR = src
-OBJS = $(SRC_DIR)/main.o $(SRC_DIR)/container.o $(SRC_DIR)/util.o $(SRC_DIR)/image.o $(SRC_DIR)/network.o
+CJSON_LIB = cJSON/libcjson.a
+OBJS = $(SRC_DIR)/main.o $(SRC_DIR)/container.o $(SRC_DIR)/util.o $(SRC_DIR)/image.o $(SRC_DIR)/network.o $(SRC_DIR)/json.o
 
 all: $(TARGET)
 
-$(TARGET): $(OBJS)
+$(TARGET): $(OBJS) $(CJSON_LIB)
 	$(CC) $(CFLAGS) $^ -o $@
 
 $(SRC_DIR)/%.o: $(SRC_DIR)/%.c
