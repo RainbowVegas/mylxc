@@ -27,7 +27,7 @@ void print_usage() {
     printf("  mylxc start container1 container2 container3\n");
     printf("  mylxc stop container1 container2 container3\n");
     printf("  mylxc rm container1 container2 container3\n");
-	printf("  mylxc limits container1 --memory 512M --cpu 2\n");
+    printf("  mylxc limits container1 --memory 512M --cpu 2\n");
 }
 
 /* 

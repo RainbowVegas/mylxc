@@ -32,20 +32,24 @@ int apply_resource_limits(const char *container_name, const char *memory_limit, 
 
 	// Apply memory limit if specified
 	if(strlen(memory_limit) > 0){
-		snprintf(cmd, sizeof(cmd), "lxc-cgroup -n %s memory.limit_in_bytes %s", container_name, memory_limit);
-		if(system(cmd) != 0){
-			fprintf(stderr, "Error: Failed to apply memory limit\n");
-			return 1;
-		}
+		snprintf(cmd, sizeof(cmd), "lxc-cgroup -n %s memory.max %s", container_name, memory_limit);
+        	if(system(cmd) != 0){
+            		fprintf(stderr, "Error: Failed to apply memory limit\n");
+            		return 1;
+        	}
+		printf("%s has had its memory limited to %s\n", container_name, memory_limit);
 	}
 
 	// Apply CPU limit if specified
 	if(cpu_limit > 0){
-		snprintf(cmd, sizeof(cmd), "lxc-cgroup -n %s cpu.cfs_quota_us %d", container_name, cpu_limit);
-		if(system(cmd) != 0){
-			fprintf(stderr, "Error: Failed to apply CPU limit\n");
-			return 1;
-		}
+		// cpu_limit is number of CPUs, convert to quota (period is always 100000)
+        	int quota = cpu_limit * 100000;
+        	snprintf(cmd, sizeof(cmd), "lxc-cgroup -n %s cpu.max \"%d 100000\"", container_name, quota);
+        	if(system(cmd) != 0){
+            		fprintf(stderr, "Error: Failed to apply CPU limit\n");
+            		return 1;
+        	}
+		printf("%s has been limited to %d CPUs\n", container_name, cpu_limit);
 	}
 
 	return 0; 
@@ -69,7 +73,8 @@ int cmd_run(const char *img, const char *container_name, port_mapping *ports,
 	image_info info;
 
 	// Parse image
-	parse_image(img, &info);
+	int ret = parse_image(img, &info);
+	if(ret != 0) return 1;
 
 	char cmd[512];
 	// Build LXC create command
@@ -77,7 +82,7 @@ int cmd_run(const char *img, const char *container_name, port_mapping *ports,
 		 container_name, info.distro, info.release);
 	
 	// Create container
-	int ret = system(cmd);
+	ret = system(cmd);
 
 	// If container was made successfully, start container
 	if(ret == 0){
@@ -85,11 +90,10 @@ int cmd_run(const char *img, const char *container_name, port_mapping *ports,
 		ret = cmd_start(container_name);
 		if(ret != 0) return ret;
 
-		// Delay for 5 seconds to allow container to boot before setting up port mapping
-		sleep(5);
-
 		// Set up port mapping
 		if(ports->has_port){
+			// Wait 8 secs for IP to get created
+			sleep(8);
 			setup_port_mapping(container_name, ports->host_port, ports->container_port);
 		}
 
@@ -128,14 +132,22 @@ int cmd_ps(){
  */
 int cmd_stop(const char *container_name){
 	char cmd[512];
-	
+	int ret;	
+
 	printf("Stopping container %s...\n", container_name);
+	
+	// If contaier exists in JSON file
+	if(container_exists(container_name)){
+                // Clean up iptable rules
+                ret = iptable_cleanup(container_name);
+        	if(ret != 0) return ret;
+	}
 
 	// Build LXC stop command
 	snprintf(cmd, sizeof(cmd), "lxc-stop -n %s", container_name);
 	
 	// Stop container
-	int ret = system(cmd);
+	ret = system(cmd);
 	
 	// If container was stopped
 	if(ret == 0){
@@ -163,7 +175,7 @@ int cmd_rm(const char *container_name){
 	printf("Removing container %s...\n", container_name);
 
 	// Build LXC command destroy
-    snprintf(cmd, sizeof(cmd), "lxc-destroy -n %s", container_name);
+    	snprintf(cmd, sizeof(cmd), "lxc-destroy -n %s", container_name);
 	
 	// Remove container
 	int ret = system(cmd);
@@ -174,10 +186,10 @@ int cmd_rm(const char *container_name){
 		// If container exists in JSON file
 		if(container_exists(container_name)){
 			// Clean up iptable rules
-			ret = iptable_cleanup(container_name);
-			if(ret != 0) return ret;
+			//ret = iptable_cleanup(container_name);
+			//if(ret != 0) return ret;
 			
-			//Remove container info from JSON
+			// Remove container info from JSON
 			ret = remove_container_info(container_name);
 			if(ret != 0) return ret;
 		}
@@ -220,10 +232,18 @@ int cmd_start(const char *container_name){
 
 	// If container exists in JSON (for stop and start)
 	if(container_exists(container_name)){
-		// Wait 5 seconds for container to boot before updating JSON
-		sleep(5);
+		// Wait 8 seconds for container to boot before updating JSON
+		sleep(8);
 		// Update container info in JSON with new IP address
 		update_container_ip(container_name);
+		
+
+    		// Re-apply iptables rules with new IP
+    		int host_port, container_port;
+    		char ip[64];
+    		if(get_container_info(container_name, ip, &host_port, &container_port) == 0){
+        		setup_port_mapping(container_name, host_port, container_port);
+    		}	
 	}
 
     return ret;

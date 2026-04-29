@@ -4,7 +4,7 @@
 
 // JSON functions
 int store_container_info(const char *container_name, const char *container_ip, 
-                         int *host_port, int *container_port);
+                         int host_port, int container_port);
 int remove_container_info(const char *container_name);
 int get_container_info(const char *container_name, char *container_ip, 
                        int *host_port, int *container_port);

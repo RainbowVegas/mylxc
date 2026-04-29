@@ -3,7 +3,7 @@
 #include <string.h>
 #include "network.h"
 #include "json.h"
-#include <cjson/cjson.h>
+#include <cJSON.h>
 
 // Helper function to read JSON file and return root object
 cJSON* get_json_root(){
@@ -226,8 +226,8 @@ int update_container_ip(const char *container_name){
     }
 
     // Update IP address in json
-    cJSON *old_container_ip = cJSON_GetObjectItem(container, "ip_address");
-    cJSON_SetStringValue(old_container_ip, new_container_ip);
+    cJSON_DeleteItemFromObject(container, "ip_address");
+    cJSON_AddStringToObject(container, "ip_address", new_container_ip);
 
     // Write back json
     if(write_back_json(root) != 0){

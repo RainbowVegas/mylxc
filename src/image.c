@@ -39,7 +39,7 @@ int parse_image(const char *img, image_info *info){
 	if(parse_col_seperator(img, info->distro, sizeof(info->distro), 
 		           	       version, sizeof(version)) != 0){
 		fprintf(stderr, "Error: couldn't find colon or buffer size is too small\n");
-		return -1;
+		return 1;
 	}
 
 	// Get release name/number

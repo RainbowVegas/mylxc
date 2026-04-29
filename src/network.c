@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "network.h"
+#include "json.h"
 
 char* get_ip(const char *container_name){
 	char container_ip[64];
@@ -108,7 +109,7 @@ int setup_port_mapping(const char *container_name, int host_port, int container_
  *
  * Return: 0 on success, non-zero on failure
  */
-int iptables_cleanup(const char *container_name){
+int iptable_cleanup(const char *container_name){
     char ip[64];
     int host_port;
     int container_port;
