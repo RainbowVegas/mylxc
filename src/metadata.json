@@ -1,7 +1,0 @@
-{
-	"a":	{
-		"ip_address":	"10.0.3.147",
-		"host_port":	8080,
-		"container_port":	80
-	}
-}
